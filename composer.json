@@ -7,7 +7,7 @@
     ],
     "license" : "MIT",
     "require": {
-        "ext-couchbase": ">=2.4.0"
+        "ext-couchbase": ">=3.0.0"
     },
     "require-dev": {
     },

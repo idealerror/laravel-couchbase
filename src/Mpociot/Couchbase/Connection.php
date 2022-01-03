@@ -2,9 +2,8 @@
 
 namespace Mpociot\Couchbase;
 
-use Couchbase\N1qlQuery;
 use CouchbaseBucket;
-use CouchbaseCluster;
+use \Couchbase\QueryOptions;
 use Mpociot\Couchbase\Events\QueryFired;
 use Mpociot\Couchbase\Query\Builder as QueryBuilder;
 use Mpociot\Couchbase\Query\Grammar as QueryGrammar;
@@ -25,15 +24,18 @@ class Connection extends \Illuminate\Database\Connection
     /** @var string[] */
     protected $metrics;
 
-    /** @var int  default consistency */
-    protected $consistency = N1qlQuery::REQUEST_PLUS;
-
     /**
      * The Couchbase connection handler.
      *
      * @var CouchbaseCluster
      */
-    protected $connection;
+    public $connection;
+    
+    
+    /*
+     * cluster
+     */
+    public $cluster;
 
     /**
      * @var string
@@ -74,7 +76,7 @@ class Connection extends \Illuminate\Database\Connection
 
         // Select database
         $this->bucketname = $config['bucket'];
-        $this->bucket = $this->connection->openBucket($this->bucketname);
+        $this->bucket = $this->connection->bucket($this->bucketname);
         $this->inlineParameters = isset($config['inline_parameters']) ? (bool)$config['inline_parameters'] : false;
 
         $this->useDefaultQueryGrammar();
@@ -267,18 +269,20 @@ class Connection extends \Illuminate\Database\Connection
             $bindings = [];
         }
 
-        $query = N1qlQuery::fromString($n1ql);
-        $query->consistency($this->consistency);
-        $query->positionalParams($bindings);
+        $options = new QueryOptions();
+        $options->positionalParameters($bindings);
         // TODO $query->namedParams(['parameters' => $bindings]);
 
         $isSuccessFul = false;
         try {
-            $result = $this->executeQuery($query);
+            $result = $this->cluster->query($n1ql, $options);
+            $rows = $result->rows();      
+            $result = (array) $result;
+            $result['rows'] = $rows;
+            $result = (object) $result;
             $isSuccessFul = true;
         } finally {
             $this->logQueryFired($n1ql, [
-                'consistency' => $this->consistency,
                 'positionalParams' => $bindings,
                 'isSuccessful' => $isSuccessFul
             ]);
@@ -312,7 +316,7 @@ class Connection extends \Illuminate\Database\Connection
      * @param  string $table
      * @return Query\Builder
      */
-    public function table($table)
+    public function table($table, $as = null)
     {
         return $this->builder($table);
     }
@@ -366,14 +370,13 @@ class Connection extends \Illuminate\Database\Connection
      */
     protected function createConnection($dsn, array $config)
     {
-        $cluster = new CouchbaseCluster($config['host']);
+        $connectionString = "couchbase://".$config['host'];
         if (!empty($config['username']) && !empty($config['password'])) {
-            if (!method_exists($cluster, 'authenticateAs')) {
-                throw new \RuntimeException('The couchbase php sdk does not support password authentication below version 2.4.0.');
-            }
-            $cluster->authenticateAs(strval($config['username']), strval($config['password']));
+            $options = new \Couchbase\ClusterOptions();
+            $options->credentials($config['username'], $config['password']);
+            $cluster = new \Couchbase\Cluster($connectionString, $options);
         }
-        return $cluster;
+        return $this->cluster = $cluster;
     }
 
     /**

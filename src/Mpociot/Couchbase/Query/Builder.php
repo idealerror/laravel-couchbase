@@ -246,7 +246,7 @@ class Builder extends BaseBuilder
      * @param  string $type
      * @return $this
      */
-    public function from($type)
+    public function from($type, $as = null)
     {
         $this->from = $this->connection->getBucketName();
         $this->type = $type;
@@ -495,11 +495,11 @@ class Builder extends BaseBuilder
             foreach ($values as &$value) {
                 $value[Helper::TYPE_NAME] = $this->type;
                 $key = Helper::getUniqueId($this->type);
-                $result = $this->connection->getCouchbaseBucket()->upsert($key, Grammar::removeMissingValue($value));
+                $result = $this->connection->getCouchbaseBucket()->defaultCollection()->upsert($key, Grammar::removeMissingValue($value));
             }
         } else {
             $values[Helper::TYPE_NAME] = $this->type;
-            $result = $this->connection->getCouchbaseBucket()->upsert($this->keys,
+            $result = $this->connection->getCouchbaseBucket()->defaultCollection()->upsert($this->keys,
                 Grammar::removeMissingValue($values));
         }
 
@@ -666,7 +666,7 @@ class Builder extends BaseBuilder
      * @param  array $bindings
      * @return array
      */
-    protected function cleanBindings(array $bindings)
+    public function cleanBindings(array $bindings)
     {
         return array_values(array_filter(parent::cleanBindings($bindings),
             function ($binding) {
