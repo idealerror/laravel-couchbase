@@ -11,7 +11,7 @@ namespace Mpociot\Couchbase;
 
 class Helper
 {
-    const TYPE_NAME = 'eloquent_type';
+    const TYPE_NAME = 'resourceType';
 
     public static function getUniqueId($praefix = null)
     {
