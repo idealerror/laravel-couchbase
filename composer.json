@@ -1,5 +1,5 @@
 {
-    "name": "hafsalmetvr/laravel-couchbase",
+    "name": "idealerror/laravel-couchbase",
     "description": "A Couchbase based Eloquent model and Query builder for Laravel",
     "keywords": ["laravel","eloquent","couchbase","database","model"],
     "homepage": "https://github.com/hafsalmetvr/laravel-couchbase",
